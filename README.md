@@ -1,4 +1,4 @@
-#Upgrading an existing cubex project
+# Upgrading an existing cubex project
 
 Within your public/index.php you will need to upgrade
 
