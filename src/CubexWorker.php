@@ -68,6 +68,7 @@ class CubexWorker extends Worker
       [],
       $request->rawBody()
     );
+    $cReq->headers->add($request->header());
 
     $cubex = new Cubex($this->_projectRoot, $this->_loader);
     $ctx = $cubex->prepareContext(new $this->_contextClass($cReq));
