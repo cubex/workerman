@@ -34,10 +34,10 @@ class CubexWorker extends Worker
     return $worker;
   }
 
-  protected function _makeHandler(): ?Handler
+  protected function _makeHandler(Cubex $cubex): ?Handler
   {
     $gen = $this->_handler;
-    return $gen();
+    return $gen($cubex);
   }
 
   public function setCount(int $count)
@@ -64,7 +64,7 @@ class CubexWorker extends Worker
     );
     $cubex = new Cubex($this->_projectRoot, $this->_loader);
     $cubex->share(Context::class, $cubex->prepareContext(new Context($cReq)));
-    $response = $cubex->handle($this->_makeHandler(), false);
+    $response = $cubex->handle($this->_makeHandler($cubex), false);
 
     // Send data to client
     $connection->send($response->getContent());
