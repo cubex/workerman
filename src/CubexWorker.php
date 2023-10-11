@@ -1,6 +1,7 @@
 <?php
 namespace Cubex\Workerman;
 
+use Cubex\Context\Context as CubexContext;
 use Cubex\Cubex;
 use Packaged\Context\Context;
 use Packaged\Routing\Handler\Handler;
@@ -16,6 +17,7 @@ class CubexWorker extends Worker
    * @var callable
    */
   protected $_handler;
+  protected $_contextClass = CubexContext::class;
 
   public function __construct($socketName = '', array $contextOption = [])
   {
@@ -24,13 +26,17 @@ class CubexWorker extends Worker
   }
 
   public static function create(
-    $projectRoot, $loader, callable $handleGenerator, $socketName = '', array $contextOption = []
+    $projectRoot, $loader, callable $handleGenerator, $socketName = '', array $contextOption = [], $contextClass = null
   )
   {
     $worker = new static($socketName, $contextOption);
     $worker->_projectRoot = $projectRoot;
     $worker->_handler = $handleGenerator;
     $worker->_loader = $loader;
+    if($contextClass != null)
+    {
+      $worker->_contextClass = $contextClass;
+    }
     return $worker;
   }
 
@@ -62,8 +68,10 @@ class CubexWorker extends Worker
       [],
       $request->rawBody()
     );
+
     $cubex = new Cubex($this->_projectRoot, $this->_loader);
-    $cubex->share(Context::class, $cubex->prepareContext(new Context($cReq)));
+    $ctx = $cubex->prepareContext(new $this->_contextClass($cReq));
+    $cubex->share(Context::class, $ctx);
     $response = $cubex->handle($this->_makeHandler($cubex), false);
 
     // Send data to client
