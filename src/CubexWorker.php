@@ -5,6 +5,7 @@ use Cubex\Context\Context as CubexContext;
 use Cubex\Cubex;
 use Packaged\Context\Context;
 use Packaged\Routing\Handler\Handler;
+use Symfony\Component\HttpFoundation\Response;
 use Workerman\Connection\ConnectionInterface;
 use Workerman\Protocols\Http\Request;
 use Workerman\Worker;
@@ -76,9 +77,46 @@ class CubexWorker extends Worker
     $response = $cubex->handle($this->_makeHandler($cubex), false);
 
     // Send data to client
-    $connection->send($response->getContent());
+    $connection->send($this->_generateResponse($response), true);
 
     $cubex->shutdown();
+  }
+
+  protected function _generateResponse(Response $response)
+  {
+    $msg = 'HTTP/' . $response->getProtocolVersion() . ' ' .
+      $response->getStatusCode() . ' ' . Response::$statusTexts[$response->getStatusCode()] . "\r\n";
+
+    $headers = $response->headers;
+    $content = $response->getContent();
+
+    if(!$headers->has('Transfer-Encoding') && !$headers->has('Content-Length'))
+    {
+      $msg .= 'Content-Length: ' . strlen($content) . "\r\n";
+    }
+    if(!$headers->has('Content-Type'))
+    {
+      $msg .= "Content-Type: text/html\r\n";
+    }
+    if(!$headers->has('Connection'))
+    {
+      $msg .= "Connection: keep-alive\r\n";
+    }
+    if(!$headers->has('Server'))
+    {
+      $msg .= "Server: workerman\r\n";
+    }
+    $msg .= "X-Cubex: Workerman\r\n";
+    foreach($headers->all() as $name => $values)
+    {
+      $msg .= "$name: " . implode(', ', $values) . "\r\n";
+    }
+
+    $msg = "$msg\r\n";
+
+    $msg .= $content;
+
+    return $msg;
   }
 
 }
